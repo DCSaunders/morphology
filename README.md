@@ -1,1 +1,1 @@
-Investigate ways to learn morphological decomposition.
+Scripts for tokenizing documents
