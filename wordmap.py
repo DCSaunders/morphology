@@ -8,11 +8,11 @@ PUNC = string.punctuation
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_in', help='File of vectors to map')
-    parser.add_argument('--vocab_size', type=int, default=10000, 
+    parser.add_argument('--vocab_size', type=int, default=30000, 
                         help='Vocab size to use constructing word map')
     parser.add_argument('--lowercase', default=True, action='store_true',
                         help='True if lowercasing')
-    parser.add_argument('--keep_punc', default=False, action='store_true',
+    parser.add_argument('--keep_punc', default=True, action='store_false',
                         help='True if keeping punctuation, otherwise stripped')
     parser.add_argument('--wmap', help='Location of wordmap to apply')
     parser.add_argument('--out_dir', default='/tmp', 
@@ -69,9 +69,10 @@ def apply_wmap(src, wmap, out_dir, lowercase, keep_punc):
                     if not keep_punc and tok in PUNC:
                         continue
                     else:
+                        print tok
                         out.append(str(wmap[UNK]))
             f_out.write(' '.join(out) + '\n')
-            print(' '.join(out) + '\n')
+            #print(' '.join(out) + '\n')
     
 def reverse_wmap(file_in, out_dir, wmap):
     reverse_wmap = {idx: word for word, idx in wmap.items()}
@@ -84,7 +85,9 @@ def reverse_wmap(file_in, out_dir, wmap):
 
 if __name__ == '__main__':
     args = get_args()
-    wmap = {'<epsilon>': 0, '<s>': 1, '</s>': 2, UNK: 3}
+    if args.lowercase:
+        UNK = 'unk'
+    wmap = {'<epsilon>': 0, '<s>': 1, '</s>': 2}
     if args.wmap:
         read_wmap(args.wmap, wmap)
     if args.reverse:
