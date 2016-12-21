@@ -3,12 +3,13 @@ import collections
 import string
 
 UNK = 'UNK'
+NUM = '<NUM>'
 PUNC = string.punctuation
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_in', help='File of vectors to map')
-    parser.add_argument('--vocab_size', type=int, default=30000, 
+    parser.add_argument('--vocab_size', type=int, default=30004, 
                         help='Vocab size to use constructing word map')
     parser.add_argument('--lowercase', default=True, action='store_true',
                         help='True if lowercasing')
@@ -19,9 +20,11 @@ def get_args():
                         help='Location to save idx/wmap')
     parser.add_argument('--reverse', default=False, action='store_true', 
                         help='True if reversing wordmap (id to word)')
+    parser.add_argument('--norm_digits', default=False, action='store_true', 
+                        help='True if replacing any digits with <NUM> token')
     return parser.parse_args()
 
-def construct_wmap(f_in, wmap, vocab_size, lowercase, keep_punc):
+def construct_wmap(f_in, wmap, vocab_size, lowercase, keep_punc, norm_digits):
     # Construct a wordmap from the text file with a given vocab size and 
     # optional lowercasing.
     c = collections.Counter()
@@ -32,6 +35,8 @@ def construct_wmap(f_in, wmap, vocab_size, lowercase, keep_punc):
             c.update(line.split())
     if not keep_punc:
         strip_punc(c)
+    if norm_digits:
+        normalise_digits(c)
     index = len(wmap)
     for pair in c.most_common(vocab_size - 3):
         wmap[pair[0]] = index
@@ -41,6 +46,11 @@ def strip_punc(counter):
     # Remove any punctuation from the wordmap counter
     for punc in PUNC:
         del counter[punc]
+
+def normalise_digits(counter):
+    for k in counter.keys():
+        if k[0].isdigit():
+            del counter[k]
 
 def save_wmap(out_dir, wmap):
     # Save wmap
@@ -55,7 +65,7 @@ def read_wmap(f_in, wmap):
             tok, index = line.split()
             wmap[tok] = index
 
-def apply_wmap(src, wmap, out_dir, lowercase, keep_punc):
+def apply_wmap(src, wmap, out_dir, lowercase, keep_punc, norm_digits):
     # Apply wmap to input file line-by-line and save output
     with open(src, 'r') as f_in, open('{}/out.idx'.format(out_dir), 'w') as f_out:
         for line in f_in:
@@ -65,12 +75,12 @@ def apply_wmap(src, wmap, out_dir, lowercase, keep_punc):
             for tok in line.split():
                 if tok in wmap:
                     out.append(str(wmap[tok]))
+                elif norm_digits and tok[0].isdigit():
+                    out.append(str(wmap[NUM]))
+                elif not keep_punc and tok in PUNC:
+                    continue
                 else:
-                    if not keep_punc and tok in PUNC:
-                        continue
-                    else:
-                        print tok
-                        out.append(str(wmap[UNK]))
+                    out.append(str(wmap[UNK]))
             f_out.write(' '.join(out) + '\n')
             #print(' '.join(out) + '\n')
     
@@ -80,21 +90,25 @@ def reverse_wmap(file_in, out_dir, wmap):
         for line in f_in:
             out = []
             for idx in line.split():
-                out.append(reverse_wmap[idx.strip()])
+                if not idx.isdigit():
+                    f_out.write(line)
+                    break
+                else:
+                    out.append(reverse_wmap[idx.strip()])
             f_out.write(' '.join([str(tok) for tok in out]) + '\n')
 
 if __name__ == '__main__':
     args = get_args()
     if args.lowercase:
         UNK = 'unk'
-    wmap = {'<epsilon>': 0, '<s>': 1, '</s>': 2}
+    wmap = {'<epsilon>': 0, '<s>': 1, '</s>': 2, UNK: 3, NUM: 4}
     if args.wmap:
         read_wmap(args.wmap, wmap)
     if args.reverse:
         reverse_wmap(args.file_in, args.out_dir, wmap)
     else:
         if not args.wmap:
-            construct_wmap(args.file_in, wmap, args.vocab_size, args.lowercase, args.keep_punc)
+            construct_wmap(args.file_in, wmap, args.vocab_size, args.lowercase, args.keep_punc, args.norm_digits)
             save_wmap(args.out_dir, wmap)
-        apply_wmap(args.file_in, wmap, args.out_dir, args.lowercase, args.keep_punc)
+        apply_wmap(args.file_in, wmap, args.out_dir, args.lowercase, args.keep_punc, args.norm_digits)
                
