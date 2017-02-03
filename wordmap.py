@@ -11,9 +11,9 @@ def get_args():
     parser.add_argument('--file_in', help='File of vectors to map')
     parser.add_argument('--vocab_size', type=int, default=30004, 
                         help='Vocab size to use constructing word map')
-    parser.add_argument('--lowercase', default=True, action='store_true',
+    parser.add_argument('--lowercase', default=False, action='store_true',
                         help='True if lowercasing')
-    parser.add_argument('--keep_punc', default=True, action='store_false',
+    parser.add_argument('--punc', default=True, action='store_false',
                         help='True if keeping punctuation, otherwise stripped')
     parser.add_argument('--wmap', help='Location of wordmap to apply')
     parser.add_argument('--out_dir', default='/tmp', 
@@ -49,8 +49,14 @@ def strip_punc(counter):
 
 def normalise_digits(counter):
     for k in counter.keys():
-        if k[0].isdigit():
+        if has_num(k):
             del counter[k]
+
+def has_num(token):
+    for l in token:
+        if l.isdigit():
+            return True
+    return False
 
 def save_wmap(out_dir, wmap):
     # Save wmap
@@ -75,7 +81,7 @@ def apply_wmap(src, wmap, out_dir, lowercase, keep_punc, norm_digits):
             for tok in line.split():
                 if tok in wmap:
                     out.append(str(wmap[tok]))
-                elif norm_digits and tok[0].isdigit():
+                elif norm_digits and has_num(tok):
                     out.append(str(wmap[NUM]))
                 elif not keep_punc and tok in PUNC:
                     continue
@@ -108,7 +114,7 @@ if __name__ == '__main__':
         reverse_wmap(args.file_in, args.out_dir, wmap)
     else:
         if not args.wmap:
-            construct_wmap(args.file_in, wmap, args.vocab_size, args.lowercase, args.keep_punc, args.norm_digits)
+            construct_wmap(args.file_in, wmap, args.vocab_size, args.lowercase, args.punc, args.norm_digits)
             save_wmap(args.out_dir, wmap)
-        apply_wmap(args.file_in, wmap, args.out_dir, args.lowercase, args.keep_punc, args.norm_digits)
+        apply_wmap(args.file_in, wmap, args.out_dir, args.lowercase, args.punc, args.norm_digits)
                
