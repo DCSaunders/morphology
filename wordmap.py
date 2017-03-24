@@ -9,7 +9,7 @@ PUNC = string.punctuation
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_in', help='File of vectors to map')
-    parser.add_argument('--vocab_size', type=int, default=30004, 
+    parser.add_argument('--vocab_size', type=int, default=0, 
                         help='Vocab size to use constructing word map')
     parser.add_argument('--lowercase', default=False, action='store_true',
                         help='True if lowercasing')
@@ -18,6 +18,8 @@ def get_args():
     parser.add_argument('--wmap', help='Location of wordmap to apply')
     parser.add_argument('--out_dir', default='/tmp', 
                         help='Location to save idx/wmap')
+    parser.add_argument('--file_out', default='/tmp/out.en', 
+                        help='Location to save reverse wordmapped data')
     parser.add_argument('--reverse', default=False, action='store_true', 
                         help='True if reversing wordmap (id to word)')
     parser.add_argument('--norm_digits', default=False, action='store_true', 
@@ -37,6 +39,8 @@ def construct_wmap(f_in, wmap, vocab_size, lowercase, keep_punc, norm_digits):
         strip_punc(c)
     if norm_digits:
         normalise_digits(c)
+    if vocab_size == 0:
+        vocab_size = len(c) + 3
     index = len(wmap)
     for pair in c.most_common(vocab_size - 3):
         wmap[pair[0]] = index
@@ -90,9 +94,9 @@ def apply_wmap(src, wmap, out_dir, lowercase, keep_punc, norm_digits):
             f_out.write(' '.join(out) + '\n')
             #print(' '.join(out) + '\n')
     
-def reverse_wmap(file_in, out_dir, wmap):
+def reverse_wmap(file_in, out_file, wmap):
     reverse_wmap = {idx: word for word, idx in wmap.items()}
-    with open(file_in, 'r') as f_in, open(out_dir + '/words', 'w') as f_out:
+    with open(file_in, 'r') as f_in, open(out_file, 'w') as f_out:
         for line in f_in:
             out = []
             for idx in line.split():
@@ -111,7 +115,7 @@ if __name__ == '__main__':
     if args.wmap:
         read_wmap(args.wmap, wmap)
     if args.reverse:
-        reverse_wmap(args.file_in, args.out_dir, wmap)
+        reverse_wmap(args.file_in, args.file_out, wmap)
     else:
         if not args.wmap:
             construct_wmap(args.file_in, wmap, args.vocab_size, args.lowercase, args.punc, args.norm_digits)
