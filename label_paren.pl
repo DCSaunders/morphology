@@ -1,11 +1,7 @@
 #!/usr/bin/perl
 use strict;
 
-my $f_name = $ARGV[0];
-open(my $in, "<", $f_name) 
-    or die "$f_name not openable";
-
-while (<$in>)
+while (<ARGV>)
 {
     chomp;
     my @toks = split(/ /);
