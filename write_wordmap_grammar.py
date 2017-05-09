@@ -35,6 +35,6 @@ with open(args.grammar_out, 'w') as f, open(args.wmap_out, 'w') as f_w:
                     ids[r] = str(len(ids))
                 rule_out.append(ids[r])
             f.write('{} : {}\n'.format(ids[nt], ' '.join(rule_out)))
-            f_w.write('"{} {} {}" {}\n'.format(
+            f_w.write('{} {} {} {}\n'.format(
                 nt, args.split_grammar, ' '.join(rule), wmap_idx))
             wmap_idx += 1
