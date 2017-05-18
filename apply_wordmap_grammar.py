@@ -6,8 +6,8 @@ import sys
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--delimit_grammar', default='//', 
-                        help='Grammar rule delimiter')
+    parser.add_argument('-d', '--delimit_grammar', default='//', help='Grammar rule delimiter')
+    parser.add_argument('-u', '--UNK', default='UNK ==> UNK', help='unknown symbol')
     parser.add_argument('-w', '--wmap_in', help='Location to load wmap')
     parser.add_argument('-o', '--out_idx', default='/tmp/idx', help='Location to save mapped out')
     parser.add_argument('-i2g', '--to_grammar', default=False, 
@@ -28,7 +28,7 @@ with open(args.wmap_in, 'r') as f:
 if args.to_words or args.to_grammar:
     # TODO
     # If mapping to words, need to map to grammar rules first, reverse wmap,
-    # and have set of non-terminals to cut out after reversing
+    # and cut out non-terminals
     # space-join if idx or word out. delimiter-join if grammar out.
     joiner = ' {} '.format(args.delimit_grammar)
 else:
@@ -40,6 +40,9 @@ with open(args.out_idx, 'w') as f:
         productions = line.split(args.delimit_grammar)
         out = []
         for prod in productions:
-            if prod.strip():
-                out.append(rule_map[prod.strip()])
+            prod = prod.strip()
+            if prod in rule_map:
+                out.append(rule_map[prod])
+            elif prod:
+                out.append(rule_map[args.UNK])
         f.write('{}\n'.format(joiner.join(out)))
