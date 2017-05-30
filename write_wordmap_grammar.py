@@ -57,10 +57,11 @@ ids = {eps: '0', start: '1', eos: '2', unk: '3'}
 if args.train_in:
     with open(args.train_in) as f:
         for line in f:
+            line = line.strip(delimiter).strip()
             line_rules = line.split(delimiter)
             for rule in line_rules:
                 rule = rule.strip()
-                if rule not in rule_counts:
+                if rule and rule not in rule_counts:
                     lhs, rhs = rule.split(args.split_grammar)
                     lhs = lhs.strip()
                     rhs = rhs.strip().split()
@@ -71,7 +72,7 @@ most_common = set()
 for lhs in rules:
     terminal_est = len([rhs for rhs in rules[lhs] 
                         if len(rhs) == 1 and is_terminal(rhs[0], lhs, rules.keys())])
-    if terminal_est > 1:
+    if terminal_est >= 1:
         unk_t_rule = '{} {} {}'.format(lhs, args.split_grammar, unk_t)
         most_common.add(unk_t_rule)
         rules[lhs].append([unk_t])

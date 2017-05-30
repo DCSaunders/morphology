@@ -69,12 +69,16 @@ else:
 
 with open(args.out_idx, 'w') as f:
     for line in sys.stdin:
-        productions = line.split(delimiter)
-        out = []
-        for prod in productions:
-            prod = prod.strip()
-            if prod in rule_map:
-                out.append(mapped_prod(prod, rule_map, nt_set))
-            elif prod:
-                unk_or_unk_t(prod, rule_map, out, nt_set)
-        f.write('{}\n'.format(joiner.join(out)))
+        try:
+            line = line.strip().strip(joiner)
+            productions = line.split(delimiter)
+            out = []
+            for prod in productions:
+                prod = prod.strip()
+                if prod in rule_map:
+                    out.append(mapped_prod(prod, rule_map, nt_set))
+                elif prod:
+                    unk_or_unk_t(prod, rule_map, out, nt_set)
+            f.write('{}\n'.format(joiner.join(out)))
+        except:
+            print line
