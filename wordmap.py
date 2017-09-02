@@ -16,9 +16,9 @@ def get_args():
     parser.add_argument('--punc', default=True, action='store_false',
                         help='True if keeping punctuation, otherwise stripped')
     parser.add_argument('--wmap', help='Location of wordmap to apply')
-    parser.add_argument('--out_dir', default='/tmp', 
+    parser.add_argument('--out_dir', default='.', 
                         help='Location to save idx/wmap')
-    parser.add_argument('--file_out', default='/tmp/out.en', 
+    parser.add_argument('--file_out', default='/tmp/out', 
                         help='Location to save reverse wordmapped data')
     parser.add_argument('--reverse', default=False, action='store_true', 
                         help='True if reversing wordmap (id to word)')
@@ -75,9 +75,9 @@ def read_wmap(f_in, wmap):
             tok, index = line.split()
             wmap[tok] = index
 
-def apply_wmap(src, wmap, out_dir, lowercase, keep_punc, norm_digits):
+def apply_wmap(src, wmap, out_dir, out_file, lowercase, keep_punc, norm_digits):
     # Apply wmap to input file line-by-line and save output
-    with open(src, 'r') as f_in, open('{}/out.idx'.format(out_dir), 'w') as f_out:
+    with open(src, 'r') as f_in, open('{}/{}'.format(out_dir, out_file), 'w') as f_out:
         for line in f_in:
             if lowercase:
                 line = line.lower()
@@ -110,8 +110,12 @@ def reverse_wmap(file_in, out_file, wmap):
 if __name__ == '__main__':
     args = get_args()
     if args.lowercase:
-        UNK = 'unk'
-    wmap = {'<epsilon>': 0, '<s>': 1, '</s>': 2, UNK: 3, NUM: 4}
+        UNK = '<unk>'
+    else:
+        UNK = '<UNK>'
+    wmap = {'<epsilon>': 0, '<s>': 1, '</s>': 2, UNK: 3}
+    if args.norm_digits:
+        wmap[NUM] = 4
     if args.wmap:
         read_wmap(args.wmap, wmap)
     if args.reverse:
@@ -120,5 +124,5 @@ if __name__ == '__main__':
         if not args.wmap:
             construct_wmap(args.file_in, wmap, args.vocab_size, args.lowercase, args.punc, args.norm_digits)
             save_wmap(args.out_dir, wmap)
-        apply_wmap(args.file_in, wmap, args.out_dir, args.lowercase, args.punc, args.norm_digits)
+        apply_wmap(args.file_in, wmap, args.out_dir, args.file_out, args.lowercase, args.punc, args.norm_digits)
                

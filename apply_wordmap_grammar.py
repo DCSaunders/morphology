@@ -2,7 +2,8 @@ import argparse
 import numpy as np
 import collections
 import sys
-
+from signal import signal, SIGPIPE, SIG_DFL
+signal(SIGPIPE,SIG_DFL) 
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -10,7 +11,7 @@ def get_args():
     parser.add_argument('-u', '--UNK', default='UNK ==> UNK', help='unknown symbol')
     parser.add_argument('-ut', '--TERMINAL_UNK', default='<unk>')
     parser.add_argument('-w', '--wmap_in', help='Location to load wmap')
-    parser.add_argument('-o', '--out_idx', default='/tmp/idx', help='Location to save mapped out')
+    parser.add_argument('-o', '--out_idx', default=None, help='Location to save mapped out')
     parser.add_argument('-i2g', '--to_grammar', default=False, 
                         action='store_true', help='True if idx->rules')
     parser.add_argument('-i2w', '--to_words', default=False, 
@@ -24,7 +25,8 @@ def is_terminal(tok, nt, nt_list):
     if tok not in nt_list:
         return True
     else:
-        if tok.lower() == tok or tok in ambig_terminals:
+        if ((tok.lower() == tok and nt.lower() == nt) or
+            (nt in ambig_terminals and tok in ambig_terminals)):
             return True
     return False
 
@@ -32,6 +34,7 @@ def is_terminal(tok, nt, nt_list):
 def mapped_prod(prod, rule_map, nt_set):
     if args.to_words:
         lhs, rhs = rule_map[prod].split('==>')
+        lhs = lhs.strip()
         rhs_split = rhs.strip().split()
         if len(rhs_split) == 1 and is_terminal(rhs_split[0], lhs, nt_set):
             return rhs_split[0]
@@ -66,19 +69,24 @@ else:
     joiner = ' '
     delimiter = args.delimit_grammar
 
+def get_out_line(line):
+    line = line.strip().strip(joiner)
+    productions = line.split(delimiter)
+    out = []
+    for prod in productions:
+        prod = prod.strip()
+        if prod in rule_map:
+            out.append(mapped_prod(prod, rule_map, nt_set))
+        elif prod:
+            unk_or_unk_t(prod, rule_map, out, nt_set)
+    return out
 
-with open(args.out_idx, 'w') as f:
-    for line in sys.stdin:
-        try:
-            line = line.strip().strip(joiner)
-            productions = line.split(delimiter)
-            out = []
-            for prod in productions:
-                prod = prod.strip()
-                if prod in rule_map:
-                    out.append(mapped_prod(prod, rule_map, nt_set))
-                elif prod:
-                    unk_or_unk_t(prod, rule_map, out, nt_set)
+if args.out_idx:
+    with open(args.out_idx, 'w') as f:
+        for line in sys.stdin:
+            out = get_out_line(line)
             f.write('{}\n'.format(joiner.join(out)))
-        except:
-            print line
+else:
+    for line in sys.stdin:
+        sys.stdout.write('{}\n'.format(joiner.join(get_out_line(line))))
+    
