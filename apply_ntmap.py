@@ -11,7 +11,6 @@ def is_terminal(tok, nt):
         return True
     return False
 
-
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--delimit_grammar', default='//', help='Grammar rule delimiter')
@@ -29,7 +28,7 @@ def get_args():
 args = get_args()
 wmap = {}
 reverse = args.to_word or args.to_grammar
-cutoff_idx = 5
+cutoff_idx = 4
 with open(args.wmap_in, 'r') as f_in:
     for line in f_in:
         tok, idx = line.split()
@@ -58,6 +57,7 @@ if reverse:
 else:        
     delimiter = '//'
     joiner = ' ==> '
+    eor = '</R>'
     with open(args.out_idx, 'w') as f:
         for line in sys.stdin:
             line = line.strip()
@@ -65,16 +65,20 @@ else:
             out = [wmap[args.root]]
             for prod in productions:
                 if prod:
-                    out.append(wmap[delimiter])
                     prod = prod.strip()
                     lhs, rhs = prod.split(joiner)
                     rhs = rhs.split()
-                    if len(rhs) == 1 and is_terminal(rhs[0], lhs) and rhs[0].upper() == rhs[0]:
-                        rhs[0] = '{}_T'.format(rhs[0])
-                    for tok in rhs:
-                        if tok in wmap:
-                            out.append(wmap[tok])
+                    if len(rhs) == 1 and is_terminal(rhs[0], lhs):
+                        if rhs[0].upper() == rhs[0]:
+                            rhs[0] = '{}_T'.format(rhs[0])
+                        if rhs[0] in wmap:
+                            out.append(wmap[rhs[0]])
                         else:
                             out.append(wmap[args.unk])
+                    else:
+                        for idx, tok in enumerate(rhs):
+                            if idx + 1 == len(rhs): # final version of NT
+                                tok = '{}{}'.format(tok, eor)
+                            out.append(wmap[tok])
             f.write('{}\n'.format(' '.join(out)))
 

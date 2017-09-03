@@ -1,5 +1,6 @@
 import argparse
 import collections
+import copy
 import sys
 
 def get_args():
@@ -30,8 +31,9 @@ unk = '<unk>'
 start = 'START'
 root = 'ROOT'
 eos = 'EOS'
+eor = '</R>' # marker for last NT in rule
 args = get_args()
-ids = {eps: 0, start: 1, eos: 2, unk: 3, delimiter: 4}
+ids = {eps: 0, start: 1, eos: 2, unk: 3}
 terminals = collections.Counter()
 can_follow = collections.defaultdict(set)
 terminal_nts = set()
@@ -50,21 +52,33 @@ with open(args.train_in, 'r') as f_in:
                     rhs[0] = '{}_T'.format(rhs[0])
                 terminal_nts.add(lhs)
                 terminals.update(rhs)
-            for tok in rhs:
-                can_follow[lhs].add(tok)
+                can_follow[lhs].add(rhs[0])
+            else:
+                for tok in rhs:
+                    can_follow[lhs].add(tok)
+                    can_follow[lhs].add('{}{}'.format(tok, eor))
 
 if args.vocab_size:
     vocab_terminals = set([item[0] for item in terminals.most_common(args.vocab_size)])
 else:
     vocab_terminals = set(terminals.keys())
+
+for nt in terminal_nts:
+    can_follow[nt].add(unk)
+
 nts = can_follow.keys()
 update_ids(nts, ids)
+last_nts = []
+for nt in nts:
+    new_nt = '{}{}'.format(nt, eor)
+    last_nts.append(new_nt)
+    can_follow[new_nt] = copy.deepcopy(can_follow[nt])
+    can_follow[new_nt].add(eps)
+update_ids(last_nts, ids)
 update_ids(vocab_terminals, ids)
 can_follow[start].add(root)
 can_follow[eos].add(eos)
 
-for nt in terminal_nts:
-    can_follow[nt].add(unk)
 
 with open(args.wmap_out, 'w') as f_out:
     for tok in sorted(ids, key=lambda x: ids[x]):
